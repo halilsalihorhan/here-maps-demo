@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+    <script
+      src="https://js.api.here.com/v3/3.1/mapsjs-core.js"
+      type="text/javascript"
+      charset="utf-8"
+    ></script>
+    <script
+      src="https://js.api.here.com/v3/3.1/mapsjs-service.js"
+      type="text/javascript"
+      charset="utf-8"
+    ></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      .page {
+        height: 100vh;
+        width: 100vw;
+        /* overflow: hidden; */
+        background-color: #424242;
+        display: flex;
+      }
+      .map {
+        display: block;
+        width: 60vw;
+        height: 100vh;
+      }
+      .map-view {
+        display: block;
+        width: 100%;
+        height: 100vh;
+      }
+      .rest {
+        display: block;
+        width: 40%;
+        height: 100vh;
+        background-color: #424242;
+        color: white;
+        padding: 20px;
+        z-index: 1;
+      }
+      .overlay {
+        position: absolute;
+        background-color: #272c538b;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        width: 60vw;
+      }
+      .connect-button {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #10131c82;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 100%;
+        cursor: pointer;
+        height: 200px;
+        width: 200px;
+        align-content: center;
+        text-align: center;
+        font-size: 2rem;
+        border: 5px solid white;
+        user-select: none;
+      }
+      .logs {
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+        overflow-y: scroll;
+      }
+      .log {
+        padding: 10px;
+        border-bottom: 1px solid #ffffff1f;
+        word-wrap: break-word;
+        overflow: hidden;
+      }
+      .log:hover {
+        background-color: #ffffff1f;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="map">
+        <map-view class="map-view" />
+      </div>
+      <div class="overlay">
+        <div onclick="connect()" class="connect-button">CONNECT</div>
+      </div>
+      <div class="rest">
+        <div class="logs"></div>
+      </div>
+    </div>
+
+    <script>
+      const url = "viss.gunes.io";
+      let platform;
+      let map;
+      let marker;
+      let connectButton = document.querySelector(".connect-button");
+      const copy = (text) => {
+        const el = document.createElement("textarea");
+        el.value = text;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      };
+      const _log = console.log;
+      console.log = (...args) => {
+        _log(...args);
+        const logs = document.querySelector(".logs");
+        const log = document.createElement("pre");
+        const label = args[0];
+        const message = args.length > 1 ? args.slice(1).join(" ") : args[0];
+        log.className = "log";
+        log.innerHTML = label + ": " + message;
+
+        log.onclick = async () => {
+          copy(message);
+        };
+        logs.append(log);
+      };
+      console.error = (...args) => {
+        const logs = document.querySelector(".logs");
+        const log = document.createElement("div");
+        log.className = "log";
+        log.style.color = "red";
+        log.innerHTML = args.join(" ");
+        log.onclick = async () => {
+          copy(args.join(" "));
+        };
+        logs.append(log);
+      };
+
+      const initMap = async () => {
+        platform = new H.service.Platform({
+          apiKey: "_BXseCyaMnvwva2q5aHTUCpOOQIlbgsjRNTQp9XQZSE",
+        });
+        var maptypes = platform.createDefaultLayers();
+        map = new H.Map(
+          document.getElementsByTagName("map-view")[0],
+          maptypes.vector.normal.map,
+          {
+            zoom: 3,
+            center: { lng: 0, lat: 0 },
+          }
+        );
+        window.addEventListener("resize", function () {
+          map.getViewPort().resize();
+        });
+      };
+
+      const fetchAGToken = async () => {
+        const response = await fetch(`http://${url}:7500/agts`, {
+          method: "POST",
+
+          body: JSON.stringify({
+            action: "agt-request",
+            vin: "GEO001",
+            context: "Independent+OEM+Cloud",
+            proof: "ABC",
+            key: "DEF",
+          }),
+        });
+        const data = await response.json();
+        return data;
+      };
+      const fetchSessionId = async (agToken) => {
+        const response = await fetch(`http://${url}:8600/ats`, {
+          method: "POST",
+
+          body: JSON.stringify({
+            action: "at-request",
+            purpose: "pay-how-you-drive",
+            pop: "",
+            agToken: agToken,
+          }),
+        });
+        const data = await response.json();
+        return data;
+      };
+      const fetchATToken = async (sessionId) => {
+        const response = await fetch(`http://${url}:8600/ats`, {
+          method: "POST",
+
+          body: JSON.stringify({ action: "at-inquiry", sessionId: sessionId }),
+        });
+        const data = await response.json();
+        return data;
+      };
+      const feedMap = async (data) => {
+        const lat =
+          parseFloat(
+            data.find((d) => d.path == "Vehicle.CurrentLocation.Latitude").dp
+              .value
+          ) || 0;
+        const lng =
+          parseFloat(
+            data.find((d) => d.path == "Vehicle.CurrentLocation.Longitude").dp
+              .value
+          ) || 0;
+        const position = { lat, lng };
+        if (marker) {
+          const start = marker.getGeometry();
+          const end = position;
+          const duration = 3000;
+          const startTime = new Date().getTime();
+          const endTime = startTime + duration;
+          const animate = () => {
+            const now = new Date().getTime();
+            const elapsed = now - startTime;
+            const progress = elapsed / duration;
+            const lat = start.lat + progress * (end.lat - start.lat);
+            const lng = start.lng + progress * (end.lng - start.lng);
+
+            map.setCenter({ lat, lng });
+            marker?.setGeometry({ lat, lng });
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            }
+          };
+          animate();
+        } else {
+          connectButton.parentNode.style.display = "none";
+          const svgMarkup =
+            '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"  width="56" height="56"  xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 256 256" enable-background="new 0 0 256 256" xml:space="preserve"><g><g><path fill="#000000" d="M128,10c-48.9,0-88.5,39.6-88.5,88.5c0,48.9,73.8,147.5,88.5,147.5c14.7,0,88.5-98.6,88.5-147.5C216.5,49.6,176.9,10,128,10z M128,171.5c-40.2,0-73-32.8-73-73c0-40.2,32.7-72.9,73-72.9c40.2,0,73,32.7,73,72.9C201,138.7,168.2,171.5,128,171.5z"/><path fill="#000000" d="M174.7,83.4h-28.4v40.3h12.4c0.2,2.9,1.5,5.6,3.5,7.5c2.2,2.2,5.2,3.5,8.5,3.5c3.3,0,6.3-1.3,8.5-3.5v0c2-2,3.3-4.6,3.5-7.5h2.6V110L174.7,83.4z M174.1,126.1c-0.8,0.8-2,1.4-3.3,1.4c-1.3,0-2.5-0.5-3.3-1.4c-0.9-0.9-1.4-2-1.4-3.3c0-1.3,0.5-2.5,1.4-3.3l0,0c0.8-0.8,2-1.4,3.3-1.4c1.3,0,2.5,0.5,3.3,1.4c0.8,0.8,1.4,2,1.4,3.3C175.5,124,175,125.2,174.1,126.1z M159,108.9V89.7h10.6l6.9,19.2H159z"/><path fill="#000000" d="M74.3,78.6h51.4v4.3H74.3v10.3h51.4v4.3H74.3v10.5h51.4v4.3H96.1c-1.8-1.1-3.9-1.7-6.2-1.7c-2.2,0-4.4,0.6-6.2,1.7h-9.4v11.3h3.6c0.2,2.9,1.5,5.6,3.5,7.5c2.2,2.2,5.2,3.5,8.5,3.5c3.3,0,6.3-1.3,8.5-3.5l0,0c2-2,3.3-4.6,3.5-7.5h38.2V67.6H74.3V78.6z M93.3,126.1c-0.9,0.8-2,1.4-3.4,1.4c-1.3,0-2.5-0.5-3.3-1.4c-0.8-0.9-1.4-2-1.4-3.3c0-1.3,0.5-2.5,1.4-3.3l0,0c0.8-0.8,2-1.4,3.3-1.4c1.3,0,2.5,0.5,3.3,1.4c0.8,0.8,1.4,2,1.4,3.3C94.6,124,94.1,125.2,93.3,126.1z"/></g></g></svg>';
+
+          var icon = new H.map.Icon(svgMarkup);
+          marker = new H.map.Marker(position, { icon: icon });
+          map.setZoom(14);
+          map.addObject(marker);
+          map.setCenter(position);
+        }
+      };
+      const waitingForConsent = () => {
+        connectButton.innerHTML = "WAITING FOR CONSENT";
+        connectButton.style.backgroundColor = "#ff980082";
+      };
+      const connecting = () => {
+        connectButton.onclick = null;
+        connectButton.innerHTML = "CONNECTING";
+        connectButton.style.backgroundColor = "#ff980082";
+      };
+      const connected = async () => {
+        connectButton.innerHTML = "CONNECTED";
+        connectButton.style.backgroundColor = "#4caf5082";
+        await new Promise((r) => setTimeout(r, 500));
+        locating();
+      };
+      const locating = async () => {
+        connectButton.innerHTML = "LOCATING";
+        connectButton.style.backgroundColor = "#ff980082";
+      };
+      const connectionFailed = () => {
+        connectButton.innerHTML = "RECONNECT";
+        connectButton.style.backgroundColor = "#f4433682";
+        connectButton.onclick = connect;
+      };
+
+      const consentRevoked = () => {
+        map.removeObject(marker);
+        marker = null;
+        map.setZoom(3);
+        map.setCenter({ lat: 0, lng: 0 });
+        connectButton.parentNode.style.display = "block";
+        connectButton.innerHTML = "CONSENT REVOKED";
+        connectButton.style.backgroundColor = "#f4433682";
+        connectButton.onclick = connect;
+      };
+      const connect = async () => {
+        connecting();
+        try {
+          const { token: agToken } = await fetchAGToken();
+          const { sessionId } = await fetchSessionId(agToken);
+          console.log("Session Id", sessionId);
+          let atToken;
+          while (true) {
+            waitingForConsent();
+            await new Promise((r) => setTimeout(r, 4000));
+            const { aToken } = await fetchATToken(sessionId);
+            if (aToken) {
+              console.log("Consent", "Granted");
+              connecting();
+              atToken = aToken;
+              break;
+            }
+          }
+          const vissServer = new WebSocket(`ws://${url}:8080`, "VISSv2");
+          vissServer.onopen = function () {
+            console.log("VISS Server", "Connected");
+            connected();
+            vissServer.send(
+              JSON.stringify({
+                action: "subscribe",
+                path: "Vehicle/CurrentLocation",
+                filter: [
+                  {
+                    type: "paths",
+                    parameter: ["Latitude", "Longitude"],
+                  },
+                  {
+                    type: "timebased",
+                    parameter: { period: "3000" },
+                  },
+                ],
+                authorization: atToken,
+                requestId: sessionId,
+              })
+            );
+          };
+          vissServer.onmessage = function (e) {
+            const json = JSON.parse(e.data);
+            console.log("VISS Server", JSON.stringify(json, null, 2));
+            if (json.error) {
+              consentRevoked();
+            }
+            if (json.data) {
+              feedMap(json.data);
+            }
+          };
+          vissServer.onerror = function (e) {
+            throw new Error("WebSocket failed: " + e);
+          };
+        } catch (err) {
+          console.error("Error: ", err);
+          connectionFailed();
+        }
+      };
+
+      initMap();
+    </script>
+  </body>
+</html>
