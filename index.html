@@ -125,6 +125,26 @@
         });
         map.addObject(polyline);
         
+        // Add distance label
+        const label = new H.map.DomMarker({
+            lat: (52.220807 + 52.228613) / 2,
+            lng: (20.973568 + 21.006243) / 2
+        }, {
+            icon: new H.map.DomIcon(`
+                <div style="
+                    background: rgba(60, 63, 65, 0.9);
+                    color: #a9b7c6;
+                    padding: 5px 10px;
+                    border-radius: 15px;
+                    font-weight: bold;
+                    font-size: 14px;
+                    white-space: nowrap;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                ">200 meters</div>
+            `)
+        });
+        map.addObject(label);
+        
         const centerLat=(52.220807+52.228613)/2;
         const centerLng=(20.973568+21.006243)/2;
         map.setCenter({lat:centerLat,lng:centerLng});
