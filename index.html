@@ -106,8 +106,8 @@
         window.addEventListener('resize',()=>map.getViewPort().resize());
         const behavior=new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
         const ui=H.ui.UI.createDefault(map,defaultLayers);
-        const startMarker=new H.map.Marker({lat:52.220807,lng:20.973568},{icon:new H.map.Icon('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><path fill="%23FF0000" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>')});
-        const endMarker=new H.map.Marker({lat:52.228613,lng:21.006243},{icon:new H.map.Icon('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><path fill="%2300FF00" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>')});
+        const startMarker=new H.map.Marker({lat:52.220807,lng:20.973568},{icon:new H.map.Icon('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24"><path fill="%23FF0000" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>')});
+        const endMarker=new H.map.Marker({lat:52.228613,lng:21.006243},{icon:new H.map.Icon('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24"><path fill="%2300FF00" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>')});
         map.addObject(startMarker);
         map.addObject(endMarker);
         const centerLat=(52.220807+52.228613)/2;
