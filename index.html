@@ -106,10 +106,9 @@
         window.addEventListener('resize',()=>map.getViewPort().resize());
         const behavior=new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
         const ui=H.ui.UI.createDefault(map,defaultLayers);
-        const truckIcon=new H.map.Icon('https://cdn-icons-png.flaticon.com/512/3774/3774289.png',{size:{w:40,h:40},anchor:{x:20,y:20}});
         const startMarker=new H.map.Marker({lat:52.220807,lng:20.973568},{volatility:true});
         map.addObject(startMarker);
-        const endMarker=new H.map.Marker({lat:52.228613,lng:21.006243},{volatility:true,icon:truckIcon});
+        const endMarker=new H.map.Marker({lat:52.228613,lng:21.006243},{volatility:true});
         map.addObject(endMarker);
         const centerLat=(52.220807+52.228613)/2;
         const centerLng=(20.973568+21.006243)/2;
