@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Here Maps Demo</title>
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            background: #2b2b2b;
+            color: #a9b7c6;
+        }
+        .map-column {
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .map-card {
+            background: #3c3f41;
+            border-radius: 10px;
+            padding: 15px;
+            height: calc(100vh - 40px);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,.3);
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+        }
+        .info-box {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(60,63,65,.9);
+            padding: 15px 25px;
+            border-radius: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.4);
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+            color: #a9b7c6;
+        }
+        .info-box p {
+            margin: 5px 0;
+            color: #a9b7c6;
+        }
+        .status-active {
+            color: #6a8759;
+            font-weight: 700;
+        }
+        .here-logo {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(158,157,157,.62);
+            box-shadow: 0 2px 5px rgba(0,0,0,.2);
+        }
+        .here-logo img {
+            width: 90px;
+            height: 90px;
+        }
+    </style>
+</head>
+<body>
+    <div class="map-column">
+        <div class="map-card">
+            <div id="map"></div>
+            <div class="info-box">
+                <p>Connection Status: <span class="status-active">Active</span></p>
+                <p>Last Location Update Time: <span id="updateTime"></span></p>
+            </div>
+            <div class="here-logo">
+                <img src="https://avatars.githubusercontent.com/u/2835506?s=200&v=4" alt="HERE Maps Logo">
+            </div>
+        </div>
+    </div>
+    <script>
+        const platform = new H.service.Platform({
+            'apikey': 'PJV1CpTQJ9B8H7huuP8J7VrJACUDIF1xtyfRsRh8nTo'
+        });
+        const defaultLayers = platform.createDefaultLayers();
+        const map = new H.Map(document.getElementById('map'), defaultLayers.vector.normal.map, {
+            zoom: 13,
+            center: { lat: 52.2297, lng: 21.0122 },
+            pixelRatio: window.devicePixelRatio || 1
+        });
+        document.getElementById('map').style.filter = 'invert(90%) hue-rotate(0deg) brightness(100%)';
+        window.addEventListener('resize', () => map.getViewPort().resize());
+        const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+        const ui = H.ui.UI.createDefault(map, defaultLayers);
+        const startMarker = new H.map.Marker({ lat: 52.220807, lng: 20.973568 }, {
+            icon: new H.map.Icon('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24"><path fill="%23FF0000" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>')
+        });
+        const endMarker = new H.map.Marker({ lat: 52.228613, lng: 21.006243 }, {
+            icon: new H.map.Icon('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="-50 -30 100.03993 100.03999"><path d="M.01994-29.98c27.61426 0 50.00002 22.38574 50.00002 50 0 27.6142-22.38576 50-50.00002 50-27.6142 0-49.99997-22.3858-49.99997-50 0-27.61426 22.38576-50 49.99997-50z" fill="%2331dad3"/><path d="M.01995-18.3135c21.17102 0 38.3335 17.16247 38.3335 38.3335 0 21.17098-17.16248 38.3335-38.3335 38.3335-21.17097 0-38.33348-17.16252-38.33348-38.3335 0-21.17103 17.1625-38.3335 38.33348-38.3335z" fill="%23002eff"/><path d="M-31.1667 31.3676c0 .43333.35186.78472.78562.78472l3.35185-.00037c-.4647 2.0944.39563 4.25994 2.17064 5.46486 1.7749 1.2046 4.1047 1.2042 5.8798-.0006 1.7744-1.2049 2.6341-3.3708 2.1694-5.4648l19.8768-.0015c-.4646 2.0937.3955 4.2592 2.1706 5.4641 1.7747 1.2046 4.1051 1.2042 5.8794-.0009 1.7751-1.2049 2.6349-3.3704 2.1698-5.4644l2.6043-.0004c-.4646 2.0944.3955 4.25994 2.1702 5.46447 1.7751 1.2045 4.1053 1.2045 5.8797-.00064 1.7751-1.20492 2.63445-3.37045 2.1698-5.46447l3.3519-.00056c.46233 0 .9065-.184 1.2339-.51145.32704-.32703.51066-.7708.51066-1.23353l-.0022-23.46686c0-.46244-.184-.90637-.51103-1.2337-.3272-.32725-.77096-.51075-1.23406-.51075l-40.303.0037c-.4631.0004-.9069.1842-1.23395.51116-.3274.3273-.51103.77125-.51103 1.23408l.0015 13.25968h-1.8319l-.0008-5.9319c0-.36997-.14685-.7252-.40894-.9868-.26164-.26166-.61697-.40887-.98693-.40887l-9.15895.0011c-1.45604 0-2.7584.90375-3.26807 2.26767l-2.92562 7.82695.00072 8.40004z"/><path d="M-25.64226 16.3622l-2.08686 5.58327 10.3611-.00077-.00037-5.58327-8.2738.00077z" fill="%23002eff"/><path d="M-30.58352-17.1484l6.14364-4.3018 55.06332 78.63858-6.14363 4.30182z" opacity=".99" fill="%2331dad3"/></svg>')
+        });
+        map.addObject(startMarker);
+        map.addObject(endMarker);
+        
+        // Create a dashed line between markers
+        const lineString = new H.geo.LineString();
+        lineString.pushPoint(startMarker.getGeometry());
+        lineString.pushPoint(endMarker.getGeometry());
+        
+        const polyline = new H.map.Polyline(lineString, {
+            style: {
+                lineWidth: 8,
+                strokeColor: '#4d78cc',
+                lineDash: [10, 5]  // Creates a dashed pattern
+            }
+        });
+        map.addObject(polyline);
+        
+        // Add distance label
+        const label = new H.map.DomMarker({
+            lat: (52.220807 + 52.228613) / 2,
+            lng: (20.973568 + 21.006243) / 2
+        }, {
+            icon: new H.map.DomIcon(`
+                <div style="
+                    background: rgba(60, 63, 65, 0.9);
+                    color: #a9b7c6;
+                    padding: 5px 10px;
+                    border-radius: 15px;
+                    font-weight: bold;
+                    font-size: 14px;
+                    white-space: nowrap;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                ">200 meters</div>
+            `)
+        });
+        map.addObject(label);
+        
+        const centerLat = (52.220807 + 52.228613) / 2;
+        const centerLng = (20.973568 + 21.006243) / 2;
+        map.setCenter({ lat: centerLat, lng: centerLng });
+        const PADDING_FACTOR = 1.2;
+        const startPoint = startMarker.getGeometry();
+        const endPoint = endMarker.getGeometry();
+        const latDiff = Math.abs(startPoint.lat - endPoint.lat) * (PADDING_FACTOR - 1);
+        const lngDiff = Math.abs(startPoint.lng - endPoint.lng) * (PADDING_FACTOR - 1);
+        const bounds = H.geo.Rect.fromPoints(
+            { lat: startPoint.lat - latDiff, lng: startPoint.lng - lngDiff },
+            { lat: endPoint.lat + latDiff, lng: endPoint.lng + lngDiff }
+        );
+        map.getViewModel().setLookAtData({ bounds: bounds });
+        
+        function updateTime() {
+            const now = new Date();
+            const twelveSecondsAgo = new Date(now.getTime() - 12000);
+            document.getElementById('updateTime').textContent = twelveSecondsAgo.toLocaleTimeString();
+        }
+        updateTime();
+    </script>
+</body>
+</html> 
